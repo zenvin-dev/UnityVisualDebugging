@@ -206,7 +206,7 @@ namespace Zenvin.VisualDebugging {
 
 		private static void SetupBehaviour () {
 			GameObject go = new GameObject ("[Visual Debug Behaviour]");
-			//go.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector;
+			go.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector;
 			behaviour = go.AddComponent<DebugBehaviour> ();
 		}
 
