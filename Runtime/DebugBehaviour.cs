@@ -1,26 +1,10 @@
-using System.Collections;
 using UnityEngine;
 
 namespace Zenvin.VisualDebugging {
+	[DefaultExecutionOrder(-100)]
 	public class DebugBehaviour : MonoBehaviour {
-
-		private void Start () {
-			StartCoroutine (DisableDebugVisuals());
-		}
-
-		private void LateUpdate () {
+		private void Update () {
 			VisualDebugger.Update ();
 		}
-
-
-		private IEnumerator DisableDebugVisuals () {
-			var wait = new WaitForEndOfFrame ();
-
-			while (true) {
-				VisualDebugger.Reset ();
-				yield return wait;
-			}
-		}
-
 	}
 }
