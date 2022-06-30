@@ -7,6 +7,8 @@ namespace Zenvin.VisualDebugging {
 		private const string LineMaterialShader = "Zenvin/DebugShader";
 		private const string LineMaterialShaderFallback = "GUI/Text Shader";
 
+		private const string LineMaterialShaderDepthTest = "Unlit/Color";
+
 		private static readonly List<LineRenderer> pool = new List<LineRenderer> (32);
 		private static int position = 0;
 
@@ -21,13 +23,23 @@ namespace Zenvin.VisualDebugging {
 			}
 		}
 
-		private static Material material;
-		private static Material LineMaterial {
+		private static Material materialDepthIgnore;
+		private static Material LineMaterialDepthIgnore {
 			get {
-				if (material == null) {
-					SetupMaterial ();
+				if (materialDepthIgnore == null) {
+					SetupDepthIgnoreMaterial ();
 				}
-				return material;
+				return materialDepthIgnore;
+			}
+		}
+		
+		private static Material materialDepthCheck;
+		private static Material LineMaterialDepthCheck {
+			get {
+				if (materialDepthCheck == null) {
+					SetupDepthCheckMaterial ();
+				}
+				return materialDepthCheck;
 			}
 		}
 
@@ -98,7 +110,6 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		// Draw RECT
-
 		public static void DrawRectangle (Vector3 position, Vector2 dimensions) {
 			DrawRectangle (position, dimensions, Quaternion.identity, DefaultColor);
 		}
@@ -121,7 +132,6 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		// Draw CIRCLE
-
 		public static void DrawCircle (Vector3 position, Quaternion rotation, float radius, int vertexCount) {
 			DrawCircle (position, rotation, radius, vertexCount, DefaultColor, false);
 		}
@@ -144,7 +154,6 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		// Draw LINE
-
 		public static void DrawLine (Vector3 start, Vector3 end, bool depth = false) {
 			DrawLine (start, end, DefaultColor, depth);
 		}
@@ -157,7 +166,6 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		// Draw SPHERE
-
 		public static void DrawSphere (Vector3 position, float radius, Color color, bool depth = false) {
 			DrawCircle (position, Quaternion.identity, radius, 32, color, depth);
 			DrawCircle (position, Quaternion.Euler (90f, 0f, 0f), radius, 32, color, depth);
@@ -191,9 +199,9 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		private static void EnableRendererWithProperties (LineRenderer lr, Color color, bool depth, bool loop) {
+			lr.material = depth ? LineMaterialDepthCheck : LineMaterialDepthIgnore;
 			MaterialPropertyBlock block = new MaterialPropertyBlock ();
 			block.SetColor ("_Color", color);
-			block.SetFloat ("_ZWrite", depth ? 1f : 0f);
 			lr.SetPropertyBlock (block);
 			lr.widthMultiplier = LineWidth;
 			lr.loop = loop;
@@ -210,11 +218,18 @@ namespace Zenvin.VisualDebugging {
 			behaviour = go.AddComponent<DebugBehaviour> ();
 		}
 
-		private static void SetupMaterial () {
+		private static void SetupDepthIgnoreMaterial () {
 			Shader shader = Shader.Find (LineMaterialShader) ?? Shader.Find (LineMaterialShaderFallback);
 			Material mat = new Material (shader);
-			material = mat;
+			materialDepthIgnore = mat;
 		}
+
+		private static void SetupDepthCheckMaterial () {
+			Shader shader = Shader.Find (LineMaterialShaderDepthTest);
+			Material mat = new Material (shader);
+			materialDepthCheck = mat;
+		}
+
 
 		private static void SetupPrefab () {
 			GameObject go = new GameObject ("Debug Line");
@@ -222,7 +237,7 @@ namespace Zenvin.VisualDebugging {
 			go.SetActive (false);
 
 			LineRenderer lr = go.AddComponent<LineRenderer> ();
-			lr.material = LineMaterial;
+			lr.material = LineMaterialDepthIgnore;
 			lr.useWorldSpace = true;
 			lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 			prefab = lr;
