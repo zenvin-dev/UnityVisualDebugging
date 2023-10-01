@@ -233,8 +233,8 @@ namespace Zenvin.VisualDebugging {
 
 		public readonly string Label;
 
-		public bool Valid => !string.IsNullOrEmpty (Label) && valueCallback != null;
-		public string Value => valueCallback == null ? "" : valueCallback.Invoke ();
+		public bool Valid => valueCallback != null && !string.IsNullOrEmpty (Label);
+		public string Value => valueCallback?.Invoke () ?? "";
 
 		public DebugTarget (Func<string> valueCallback, string label) {
 			this.valueCallback = valueCallback;
