@@ -32,7 +32,7 @@ namespace Zenvin.VisualDebugging {
 				return materialDepthIgnore;
 			}
 		}
-		
+
 		private static Material materialDepthCheck;
 		private static Material LineMaterialDepthCheck {
 			get {
@@ -53,6 +53,11 @@ namespace Zenvin.VisualDebugging {
 			}
 		}
 
+		private static bool enabled;
+		public static bool Enabled {
+			get => enabled;
+			set => Toggle (value);
+		}
 
 		private static int poolSizeLimit = 128;
 		public static int PoolSizeLimit {
@@ -103,6 +108,9 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		public static void DrawPath (bool depth, bool loop, Color color, params Vector3[] points) {
+			if (!Enabled)
+				return;
+
 			var lr = GetNextRenderer ();
 			lr.positionCount = points.Length;
 			lr.SetPositions (points);
@@ -123,6 +131,9 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		public static void DrawRectangle (Vector3 position, Vector2 dimensions, Quaternion rotation, Color color, bool depth = false) {
+			if (!Enabled)
+				return;
+
 			Vector3 topRgt = rotation * new Vector3 (dimensions.x, dimensions.y, 0f);
 			Vector3 topLft = rotation * new Vector3 (-dimensions.x, dimensions.y, 0f);
 			Vector3 btmRgt = rotation * new Vector3 (dimensions.x, -dimensions.y, 0f);
@@ -137,10 +148,10 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		public static void DrawCircle (Vector3 position, Quaternion rotation, float radius, int vertexCount, Color color, bool depth) {
-			if (radius == 0f || vertexCount < 3) {
+			if (!Enabled || radius == 0f || vertexCount < 3) {
 				return;
 			}
-			
+
 			radius = Mathf.Abs (radius);
 
 			Vector3[] points = new Vector3[vertexCount];
@@ -159,6 +170,9 @@ namespace Zenvin.VisualDebugging {
 		}
 
 		public static void DrawLine (Vector3 start, Vector3 end, Color color, bool depth = false) {
+			if (!Enabled)
+				return;
+
 			var lr = GetNextRenderer ();
 			lr.positionCount = 2;
 			lr.SetPositions (new Vector3[] { start, end });
@@ -177,7 +191,9 @@ namespace Zenvin.VisualDebugging {
 		// ----------- Updating & Resetting --------------------------------------------------------
 
 		internal static void Update () {
-			Reset ();
+			if (Enabled) {
+				Reset ();
+			}
 		}
 
 		private static void Reset () {
@@ -251,6 +267,17 @@ namespace Zenvin.VisualDebugging {
 				if (PoolSizeLimit <= 0 || pool.Count < PoolSizeLimit) {
 					pool.Add (Object.Instantiate (Prefab, Behaviour.transform));
 				}
+			}
+		}
+
+
+		private static void Toggle (bool state) {
+			if (state == enabled)
+				return;
+
+			enabled = state;
+			if (!state) {
+				Reset ();
 			}
 		}
 
