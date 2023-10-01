@@ -1,6 +1,6 @@
 {
     "name": "com.zenvin.visual-debugging",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "displayName": "Runtime Visual Debugging",
     "description": "A visual debugging tool for use during runtime.",
     "unity": "2020.1",
