@@ -39,3 +39,4 @@ A collection of static methods to expand the functionalilty of Unity's `Gizmos` 
 * `DrawRay` - Draws a ray of a given color.
 * `DrawWireAngle` - Draws the outline of an angle at a given position, rotation and with a given radius and color.
 * `DrawWireAngle` - Draws a circle at a given position, rotation and with a given radius and color.
+* `DrawRect` - Draws a rect at a given position, with a given size, rotation and color.

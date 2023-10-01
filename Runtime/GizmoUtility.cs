@@ -109,5 +109,29 @@ namespace Zenvin.VisualDebugging {
 
 		}
 
+		public static void DrawRect (Vector3 position, Vector2 size, Quaternion rotation, Color color) {
+			size *= 0.5f;
+
+			var p0 = new Vector3 (+size.x, 0f, +size.y);	// top rgt
+			var p1 = new Vector3 (+size.x, 0f, -size.y);	// btm rgt
+			var p2 = new Vector3 (-size.x, 0f, +size.y);	// top lft
+			var p3 = new Vector3 (-size.x, 0f, -size.y);	// btm lft
+
+			p0 = rotation * p0;
+			p1 = rotation * p1;
+			p2 = rotation * p2;
+			p3 = rotation * p3;
+
+			p0 += position;
+			p1 += position;
+			p2 += position;
+			p3 += position;
+
+			DrawLine (p0, p1, color);	// top rgt - btm rgt
+			DrawLine (p1, p3, color);	// btm rgt - btm lft
+			DrawLine (p3, p2, color);	// btm lft - top lft
+			DrawLine (p2, p0, color);	// top lft - top rgt
+		}
+
 	}
 }
