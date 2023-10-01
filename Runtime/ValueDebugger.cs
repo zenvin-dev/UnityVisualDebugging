@@ -23,9 +23,17 @@ namespace Zenvin.VisualDebugging {
 		private float updateInterval = 0f;
 		private float spacing = 5f;
 		private float margin = 5f;
-
 		private Vector2 cellSize = new Vector2 (150, 40);
 
+
+		public static bool Enabled {
+			get => debugger != null && debugger.enabled;
+			set {
+				if (debugger != null) {
+					debugger.enabled = value;
+				}
+			}
+		}
 
 		public static Vector2 CellSize {
 			get {
