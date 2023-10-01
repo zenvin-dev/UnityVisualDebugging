@@ -5,6 +5,7 @@ using System.Globalization;
 using UnityEngine;
 
 namespace Zenvin.VisualDebugging {
+	[DisallowMultipleComponent]
 	public class ValueDebugger : MonoBehaviour {
 
 		public static readonly CultureInfo Culture = CultureInfo.GetCultureInfo ("en-US") ?? CultureInfo.CurrentCulture;
@@ -103,12 +104,15 @@ namespace Zenvin.VisualDebugging {
 		}
 
 
+		private void Start () {
+			if (debugger != null)
+				return;
+
+			debugger = this;
+			SetUpdateIntervalInternal (0.25f);
+		}
 
 		private void OnGUI () {
-			if (!Debug.isDebugBuild) {
-				return;
-			}
-
 			if (labelStyle == null || valueStyle == null) {
 				SetupStyles ();
 			}
@@ -130,6 +134,7 @@ namespace Zenvin.VisualDebugging {
 				pos.y++;
 			}
 		}
+
 
 		private void DrawCell (Rect rect, int index) {
 			const float frame = 3f;
