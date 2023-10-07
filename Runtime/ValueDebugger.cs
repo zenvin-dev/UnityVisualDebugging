@@ -9,8 +9,11 @@ namespace Zenvin.VisualDebugging {
 	public class ValueDebugger : MonoBehaviour {
 
 		public enum TargetVisibilityOption {
+			/// <summary> Global debug targets are always shown. </summary>
 			Always,
+			/// <summary> Global debug targets are only shown when contextualized ones are not. </summary>
 			WithoutContextOnly,
+			/// <summary> Global debug targets are only shown when contextualized ones are as well. </summary>
 			WithContextOnly,
 		}
 
@@ -35,6 +38,10 @@ namespace Zenvin.VisualDebugging {
 		private TargetVisibilityOption globalTargetVisibility = TargetVisibilityOption.WithoutContextOnly;
 
 
+		/// <summary>
+		/// Whether debug targets should be drawn.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static bool Enabled {
 			get {
 				Initialize ();
@@ -46,6 +53,10 @@ namespace Zenvin.VisualDebugging {
 				}
 			}
 		}
+		/// <summary>
+		/// When global debug targets should be drawn.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static TargetVisibilityOption GlobalTargetVisibility {
 			get {
 				Initialize ();
@@ -56,6 +67,10 @@ namespace Zenvin.VisualDebugging {
 				debugger.globalTargetVisibility = value;
 			}
 		}
+		/// <summary>
+		/// The currently selected context.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static GameObject CurrentContext {
 			get {
 				Initialize ();
@@ -66,6 +81,10 @@ namespace Zenvin.VisualDebugging {
 				debugger.currentContext = value;
 			}
 		}
+		/// <summary>
+		/// The size of each drawn value's cell on screen.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static Vector2 CellSize {
 			get {
 				Initialize ();
@@ -78,6 +97,10 @@ namespace Zenvin.VisualDebugging {
 				debugger.cellSize = value;
 			}
 		}
+		/// <summary>
+		/// The spacing between value cells. Cannot be less than 0.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static float Spacing {
 			get {
 				Initialize ();
@@ -88,6 +111,10 @@ namespace Zenvin.VisualDebugging {
 				debugger.spacing = Mathf.Max (0f, value);
 			}
 		}
+		/// <summary>
+		/// The margin around value cells. Cannot be less than 0.<br></br>
+		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// </summary>
 		public static float Margin {
 			get {
 				Initialize ();
@@ -100,10 +127,18 @@ namespace Zenvin.VisualDebugging {
 		}
 
 
+		/// <summary>
+		/// Sets the interval with which target values will be updated.
+		/// Setting the <paramref name="interval"/> to 0 or less will cause updates to happen every frame.
+		/// </summary>
 		public static void SetUpdateInterval (float interval) {
 			Initialize ();
 			debugger.SetUpdateIntervalInternal (interval);
 		}
+		/// <summary>
+		/// Registers a new <see cref="DebugTarget"/> to be drawn as a value on screen.
+		/// </summary>
+		/// <returns> A handle by which the added target may be removed, or -1 if the target could not be added. </returns>
 		public static int RegisterTarget (DebugTarget target) {
 			if (!target.Valid) {
 				return -1;
@@ -112,6 +147,9 @@ namespace Zenvin.VisualDebugging {
 			debugger.debugTargets[referenceID] = target;
 			return referenceID++;
 		}
+		/// <summary>
+		/// Unregisters a <see cref="DebugTarget"/> from the debugger, using its handle (see <see cref="RegisterTarget(DebugTarget)"/>).
+		/// </summary>
 		public static void UnregisterTarget (int handle) {
 			if (handle < 0) {
 				return;
