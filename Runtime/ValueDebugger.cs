@@ -8,13 +8,19 @@ namespace Zenvin.VisualDebugging {
 	[DisallowMultipleComponent]
 	public class ValueDebugger : MonoBehaviour {
 
+		public enum TargetVisibilityOption {
+			Always,
+			WithoutContextOnly,
+			WithContextOnly,
+		}
+
 		public static readonly CultureInfo Culture = CultureInfo.GetCultureInfo ("en-US") ?? CultureInfo.CurrentCulture;
 
 		private static ValueDebugger debugger;
 		private static int referenceID = 0;
 
 		private readonly Dictionary<int, DebugTarget> debugTargets = new Dictionary<int, DebugTarget> ();
-		private readonly List<(string Label, string Value)> targetValues = new List<(string Label, string Value)> ();
+		private readonly List<DebugTargetValue> targetValues = new List<DebugTargetValue> ();
 
 		private Coroutine coroutine;
 		private GUIStyle labelStyle;
@@ -25,71 +31,79 @@ namespace Zenvin.VisualDebugging {
 		private float spacing = 5f;
 		private float margin = 5f;
 		private Vector2 cellSize = new Vector2 (150, 40);
+		private GameObject currentContext = null;
+		private TargetVisibilityOption globalTargetVisibility = TargetVisibilityOption.WithoutContextOnly;
 
 
 		public static bool Enabled {
-			get => debugger != null && debugger.enabled;
+			get {
+				Initialize ();
+				return debugger.enabled;
+			}
 			set {
 				if (debugger != null) {
 					debugger.enabled = value;
 				}
 			}
 		}
-
+		public static TargetVisibilityOption GlobalTargetVisibility {
+			get {
+				Initialize ();
+				return debugger.globalTargetVisibility;
+			}
+			set {
+				Initialize ();
+				debugger.globalTargetVisibility = value;
+			}
+		}
+		public static GameObject CurrentContext {
+			get {
+				Initialize ();
+				return debugger.currentContext;
+			}
+			set {
+				Initialize ();
+				debugger.currentContext = value;
+			}
+		}
 		public static Vector2 CellSize {
 			get {
-				if (debugger == null) {
-					return Vector2.zero;
-				}
+				Initialize ();
 				return debugger.cellSize;
 			}
 			set {
-				if (debugger != null) {
-					value.x = Mathf.Max (value.x, 10);
-					value.y = Mathf.Max (value.y, 40);
-					debugger.cellSize = value;
-				}
+				Initialize ();
+				value.x = Mathf.Max (value.x, 10);
+				value.y = Mathf.Max (value.y, 40);
+				debugger.cellSize = value;
 			}
 		}
-
 		public static float Spacing {
 			get {
-				if (debugger == null) {
-					return 0f;
-				}
+				Initialize ();
 				return debugger.spacing;
 			}
 			set {
-				if (debugger != null) {
-					debugger.spacing = Mathf.Max (0f, value);
-				}
+				Initialize ();
+				debugger.spacing = Mathf.Max (0f, value);
 			}
 		}
-
 		public static float Margin {
 			get {
-				if (debugger == null) {
-					return 0f;
-				}
+				Initialize ();
 				return debugger.margin;
 			}
 			set {
-				if (debugger != null) {
-					debugger.margin = Mathf.Max (0f, value);
-				}
+				Initialize ();
+				debugger.margin = Mathf.Max (0f, value);
 			}
 		}
 
 
-		public static bool SetUpdateInterval (float interval) {
-			if (interval <= 0f) {
-				return false;
-			}
+		public static void SetUpdateInterval (float interval) {
 			Initialize ();
 			debugger.SetUpdateIntervalInternal (interval);
-			return true;
 		}
-
 		public static int RegisterTarget (DebugTarget target) {
 			if (!target.Valid) {
 				return -1;
@@ -98,9 +112,11 @@ namespace Zenvin.VisualDebugging {
 			debugger.debugTargets[referenceID] = target;
 			return referenceID++;
 		}
-
-		public static void UnregisterTarget (int id) {
-			debugger?.debugTargets?.Remove (id);
+		public static void UnregisterTarget (int handle) {
+			if (handle < 0) {
+				return;
+			}
+			debugger?.debugTargets?.Remove (handle);
 		}
 
 
@@ -118,11 +134,14 @@ namespace Zenvin.VisualDebugging {
 			}
 
 			Rect screen = new Rect (margin, margin, Screen.width - margin * 2f, Screen.height - margin * 2f);
-			float cellWidth = (screen.width - spacing * cellSize.x) / cellSize.x;
-			float cellHeight = (screen.height - spacing * cellSize.y) / cellSize.y;
-
 			Vector2Int pos = Vector2Int.zero;
+
 			for (int i = 0; i < targetValues.Count; i++) {
+				var target = targetValues[i];
+				if (!GetCellIsVisible (target.Context)) {
+					continue;
+				}
+
 				Rect cell = GetCellRect (pos);
 				if (cell.y + cell.height > screen.y + screen.height) {
 					pos.x++;
@@ -130,16 +149,15 @@ namespace Zenvin.VisualDebugging {
 					cell = GetCellRect (pos);
 				}
 
-				DrawCell (cell, i);
+				DrawCell (cell, ref target);
 				pos.y++;
 			}
 		}
 
 
-		private void DrawCell (Rect rect, int index) {
+		private void DrawCell (Rect rect, ref DebugTargetValue target) {
 			const float frame = 3f;
 			const float header = 15f;
-			var target = targetValues[index];
 
 			GUI.Box (rect, string.Empty);
 
@@ -166,6 +184,19 @@ namespace Zenvin.VisualDebugging {
 				cellSize.x,
 				cellSize.y
 			);
+		}
+
+		private bool GetCellIsVisible (GameObject context) {
+			switch (globalTargetVisibility) {
+				case TargetVisibilityOption.Always:
+					return true;
+				case TargetVisibilityOption.WithoutContextOnly:
+					return context == null;
+				case TargetVisibilityOption.WithContextOnly:
+					return context != null;
+				default:
+					return true;
+			}
 		}
 
 
@@ -206,39 +237,60 @@ namespace Zenvin.VisualDebugging {
 				StopCoroutine (coroutine);
 			}
 			updateInterval = interval;
-			coroutine = StartCoroutine (UpdateValues (interval));
+			coroutine = StartCoroutine (CoroutineUpdateValues (interval));
 		}
 
-		private IEnumerator UpdateValues (float interval) {
-			WaitForSecondsRealtime wfs = new WaitForSecondsRealtime (interval);
+		private IEnumerator CoroutineUpdateValues (float interval) {
+			WaitForSecondsRealtime wfs = interval <= 0f ? null : new WaitForSecondsRealtime (interval);
 			while (true) {
-				targetValues.Clear ();
-				List<DebugTarget> targets = new List<DebugTarget> (debugTargets.Values);
-
-				foreach (var dt in targets) {
-					if (dt.Valid) {
-						targetValues.Add ((dt.Label, dt.Value));
-					}
-				}
-
+				UpdateValues ();
 				yield return wfs;
 			}
 		}
 
+		private void UpdateValues () {
+			targetValues.Clear ();
+			List<DebugTarget> targets = new List<DebugTarget> (debugTargets.Values);
 
+			foreach (var dt in targets) {
+				if (dt.Valid) {
+					targetValues.Add (new DebugTargetValue (dt.Label, dt.Value, dt.Context));
+				}
+			}
+		}
 	}
 
 	public struct DebugTarget {
 		private readonly Func<string> valueCallback;
 
 		public readonly string Label;
+		public readonly GameObject Context;
+
 
 		public bool Valid => valueCallback != null && !string.IsNullOrEmpty (Label);
 		public string Value => valueCallback?.Invoke () ?? "";
 
-		public DebugTarget (Func<string> valueCallback, string label) {
+
+		public DebugTarget (Func<string> valueCallback, string label, GameObject context) {
 			this.valueCallback = valueCallback;
 			Label = label;
+			Context = context;
+		}
+
+		public DebugTarget (Func<string> valueCallback, string label, Component context) : this (valueCallback, label, context != null ? context.gameObject : null) { }
+
+		public DebugTarget (Func<string> valueCallback, string label) : this (valueCallback, label, (GameObject)null) { }
+	}
+
+	internal struct DebugTargetValue {
+		public string Label;
+		public string Value;
+		public GameObject Context;
+
+		public DebugTargetValue (string label, string value, GameObject context) {
+			Label = label;
+			Value = value;
+			Context = context;
 		}
 	}
 }
