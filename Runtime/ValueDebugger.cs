@@ -17,6 +17,9 @@ namespace Zenvin.VisualDebugging {
 			WithContextOnly,
 		}
 
+		/// <summary>
+		/// Helper for calling <c>ToString()</c> on debugged values, to make them appear uniform.
+		/// </summary>
 		public static readonly CultureInfo Culture = CultureInfo.GetCultureInfo ("en-US") ?? CultureInfo.CurrentCulture;
 
 		private static ValueDebugger debugger;
@@ -29,132 +32,110 @@ namespace Zenvin.VisualDebugging {
 		private GUIStyle labelStyle;
 		private GUIStyle valueStyle;
 
-
 		private float updateInterval = 0f;
 		private float spacing = 5f;
 		private float margin = 5f;
 		private Vector2 cellSize = new Vector2 (150, 40);
-		private GameObject currentContext = null;
-		private TargetVisibilityOption globalTargetVisibility = TargetVisibilityOption.WithoutContextOnly;
 
 
 		/// <summary>
-		/// Whether debug targets should be drawn.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// The current instance of the debugger, if any.
 		/// </summary>
-		public static bool Enabled {
-			get {
-				Initialize ();
-				return debugger.enabled;
-			}
-			set {
-				if (debugger != null) {
-					debugger.enabled = value;
-				}
-			}
-		}
+		public static ValueDebugger Instance => debugger;
 		/// <summary>
-		/// When global debug targets should be drawn.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// Whether debug targets should be drawn.
 		/// </summary>
-		public static TargetVisibilityOption GlobalTargetVisibility {
-			get {
-				Initialize ();
-				return debugger.globalTargetVisibility;
-			}
-			set {
-				Initialize ();
-				debugger.globalTargetVisibility = value;
-			}
-		}
+		public bool Enabled { get; set; }
 		/// <summary>
-		/// The currently selected context.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// When global debug targets should be drawn.
 		/// </summary>
-		public static GameObject CurrentContext {
-			get {
-				Initialize ();
-				return debugger.currentContext;
-			}
-			set {
-				Initialize ();
-				debugger.currentContext = value;
-			}
-		}
+		public TargetVisibilityOption GlobalTargetVisibility { get; set; }
 		/// <summary>
-		/// The size of each drawn value's cell on screen.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// If true, all contextualized debug targets are shown when no context is set.
 		/// </summary>
-		public static Vector2 CellSize {
+		public bool ShowContextualizedAsGlobal { get; set; }
+		/// <summary>
+		/// The currently selected context.
+		/// </summary>
+		public GameObject CurrentContext { get; set; }
+		/// <summary>
+		/// The size of each drawn value's cell on screen.
+		/// </summary>
+		public Vector2 CellSize {
 			get {
-				Initialize ();
-				return debugger.cellSize;
+				return cellSize;
 			}
 			set {
-				Initialize ();
 				value.x = Mathf.Max (value.x, 10);
 				value.y = Mathf.Max (value.y, 40);
-				debugger.cellSize = value;
+				cellSize = value;
 			}
 		}
 		/// <summary>
-		/// The spacing between value cells. Cannot be less than 0.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// The spacing between value cells. Cannot be less than 0.
 		/// </summary>
-		public static float Spacing {
+		public float Spacing {
 			get {
-				Initialize ();
-				return debugger.spacing;
+				return spacing;
 			}
 			set {
-				Initialize ();
-				debugger.spacing = Mathf.Max (0f, value);
+				spacing = Mathf.Max (0f, value);
 			}
 		}
 		/// <summary>
-		/// The margin around value cells. Cannot be less than 0.<br></br>
-		/// Getting or setting this value will initialize a new <see cref="ValueDebugger"/> instance, if necessary.
+		/// The margin around value cells. Cannot be less than 0.
 		/// </summary>
-		public static float Margin {
+		public float Margin {
 			get {
-				Initialize ();
-				return debugger.margin;
+				return margin;
 			}
 			set {
-				Initialize ();
-				debugger.margin = Mathf.Max (0f, value);
+				margin = Mathf.Max (0f, value);
 			}
 		}
+		/// <summary>
+		/// The current interval at which debug targets' values are updated.
+		/// If the value is 0 or less, updates will happen every frame.<br></br>
+		/// Use <see cref="SetUpdateInterval(float)"/> to change the interval.
+		/// </summary>
+		public float UpdateInterval => updateInterval;
 
+
+		/// <summary>
+		/// Creates a new <see cref="ValueDebugger"/> instance if necessary and updates the current instance.
+		/// </summary>
+		/// <returns> The current instance of the debugger. </returns>
+		public static ValueDebugger GetOrCreateInstance () {
+			Initialize ();
+			return debugger;
+		}
 
 		/// <summary>
 		/// Sets the interval with which target values will be updated.
 		/// Setting the <paramref name="interval"/> to 0 or less will cause updates to happen every frame.
 		/// </summary>
-		public static void SetUpdateInterval (float interval) {
-			Initialize ();
-			debugger.SetUpdateIntervalInternal (interval);
+		public void SetUpdateInterval (float interval) {
+			SetUpdateIntervalInternal (interval);
 		}
 		/// <summary>
 		/// Registers a new <see cref="DebugTarget"/> to be drawn as a value on screen.
 		/// </summary>
 		/// <returns> A handle by which the added target may be removed, or -1 if the target could not be added. </returns>
-		public static int RegisterTarget (DebugTarget target) {
+		public int RegisterTarget (DebugTarget target) {
 			if (!target.Valid) {
 				return -1;
 			}
-			Initialize ();
-			debugger.debugTargets[referenceID] = target;
+			debugTargets[referenceID] = target;
 			return referenceID++;
 		}
 		/// <summary>
 		/// Unregisters a <see cref="DebugTarget"/> from the debugger, using its handle (see <see cref="RegisterTarget(DebugTarget)"/>).
 		/// </summary>
-		public static void UnregisterTarget (int handle) {
+		public void UnregisterTarget (int handle) {
 			if (handle < 0) {
 				return;
 			}
-			debugger?.debugTargets?.Remove (handle);
+			debugTargets?.Remove (handle);
 		}
 
 
@@ -224,14 +205,18 @@ namespace Zenvin.VisualDebugging {
 			);
 		}
 
-		private bool GetCellIsVisible (GameObject context) {
-			switch (globalTargetVisibility) {
+		private bool GetCellIsVisible (GameObject cellContext) {
+			if (cellContext != null) {
+				return ShowContextualizedAsGlobal || cellContext == CurrentContext;
+			}
+
+			switch (GlobalTargetVisibility) {
 				case TargetVisibilityOption.Always:
 					return true;
 				case TargetVisibilityOption.WithoutContextOnly:
-					return context == null;
+					return cellContext == null;
 				case TargetVisibilityOption.WithContextOnly:
-					return context != null;
+					return cellContext != null;
 				default:
 					return true;
 			}
@@ -288,9 +273,8 @@ namespace Zenvin.VisualDebugging {
 
 		private void UpdateValues () {
 			targetValues.Clear ();
-			List<DebugTarget> targets = new List<DebugTarget> (debugTargets.Values);
 
-			foreach (var dt in targets) {
+			foreach (var dt in debugTargets.Values) {
 				if (dt.Valid) {
 					targetValues.Add (new DebugTargetValue (dt.Label, dt.Value, dt.Context));
 				}
@@ -321,9 +305,10 @@ namespace Zenvin.VisualDebugging {
 	}
 
 	internal struct DebugTargetValue {
-		public string Label;
-		public string Value;
-		public GameObject Context;
+		public readonly string Label;
+		public readonly string Value;
+		public readonly GameObject Context;
+
 
 		public DebugTargetValue (string label, string value, GameObject context) {
 			Label = label;
