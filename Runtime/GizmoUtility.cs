@@ -16,7 +16,7 @@ namespace Zenvin.VisualDebugging {
 
 			float frac = 360f / segments;
 			for (int i = 1; i < segments; i++) {
-				Vector3 point = position + ((Quaternion.Euler (Vector3.up * (frac * i)) * rotation) * Vector3.forward) * radius;
+				Vector3 point = (rotation * Quaternion.Euler (Vector3.up * (frac * i)) * Vector3.forward) * radius + position;
 				Gizmos.DrawLine (lastPoint, point);
 				lastPoint = point;
 			}
