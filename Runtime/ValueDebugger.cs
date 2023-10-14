@@ -23,10 +23,10 @@ namespace Zenvin.VisualDebugging {
 		public static readonly CultureInfo Culture = CultureInfo.GetCultureInfo ("en-US") ?? CultureInfo.CurrentCulture;
 
 		private static ValueDebugger debugger;
-		private static int referenceID = 0;
 
 		private readonly Dictionary<int, DebugTarget> debugTargets = new Dictionary<int, DebugTarget> ();
 		private readonly List<DebugTargetValue> targetValues = new List<DebugTargetValue> ();
+		private int referenceHandle = 0;
 
 		private Coroutine coroutine;
 		private GUIStyle labelStyle;
@@ -99,6 +99,10 @@ namespace Zenvin.VisualDebugging {
 		/// Use <see cref="SetUpdateInterval(float)"/> to change the interval.
 		/// </summary>
 		public float UpdateInterval => updateInterval;
+		/// <summary>
+		/// The number of debug targets. May be greater than the number of targets shown.
+		/// </summary>
+		public int ValueCount => debugTargets.Count;
 
 
 		/// <summary>
@@ -110,6 +114,7 @@ namespace Zenvin.VisualDebugging {
 			return debugger;
 		}
 
+
 		/// <summary>
 		/// Sets the interval with which target values will be updated.
 		/// Setting the <paramref name="interval"/> to 0 or less will cause updates to happen every frame.
@@ -117,6 +122,7 @@ namespace Zenvin.VisualDebugging {
 		public void SetUpdateInterval (float interval) {
 			SetUpdateIntervalInternal (interval);
 		}
+		
 		/// <summary>
 		/// Registers a new <see cref="DebugTarget"/> to be drawn as a value on screen.
 		/// </summary>
@@ -125,9 +131,10 @@ namespace Zenvin.VisualDebugging {
 			if (!target.Valid) {
 				return -1;
 			}
-			debugTargets[referenceID] = target;
-			return referenceID++;
+			debugTargets[referenceHandle] = target;
+			return referenceHandle++;
 		}
+		
 		/// <summary>
 		/// Unregisters a <see cref="DebugTarget"/> from the debugger, using its handle (see <see cref="RegisterTarget(DebugTarget)"/>).
 		/// </summary>
@@ -136,6 +143,28 @@ namespace Zenvin.VisualDebugging {
 				return;
 			}
 			debugTargets?.Remove (handle);
+		}
+
+		/// <summary>
+		/// Replaces the current debug targets with new ones.<br></br>
+		/// Also updates the reference handle.
+		/// </summary>
+		public void CloneAndOverwriteTargets (Dictionary<int, DebugTarget> targets) {
+			debugTargets.Clear ();
+			targetValues.Clear ();
+			
+			if (targets == null || targets.Count == 0) {
+				return;
+			}
+
+			referenceHandle = -1;
+			foreach (var target in targets) {
+				debugTargets.Add (target.Key, target.Value);
+				if (target.Key > referenceHandle) {
+					referenceHandle = target.Key;
+				}
+			}
+			referenceHandle++;
 		}
 
 
