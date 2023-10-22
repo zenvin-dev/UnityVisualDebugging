@@ -256,7 +256,12 @@ namespace Zenvin.VisualDebugging {
 			valueRect.y += header;
 			valueRect.height -= header;
 
-			GUI.Label (labelRect, target.Label, labelStyle);
+			var label = target.Label;
+			if (target.Context != null) {
+				label += $" ({target.Context.name})";
+			}
+
+			GUI.Label (labelRect, label, labelStyle);
 			GUI.Label (valueRect, target.Value, valueStyle);
 		}
 
