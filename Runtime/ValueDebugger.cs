@@ -167,6 +167,21 @@ namespace Zenvin.VisualDebugging {
 			referenceHandle++;
 		}
 
+		/// <summary>
+		/// Performs a linear search in (up to) all registered debug targets and returns whether the context of any matches the given value.
+		/// </summary>
+		/// <remarks>
+		/// Use sparingly. The linear search means that executing the method will take <c>O(n)</c> at worst, where <c>n</c> is the number of registered targets.
+		/// </remarks>
+		public bool ContainsContext (GameObject context) {
+			foreach (var target in debugTargets.Values) {
+				if (target.Context == context) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 
 		private void Start () {
 			if (debugger != null)
