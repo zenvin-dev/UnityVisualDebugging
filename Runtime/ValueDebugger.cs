@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using UnityEngine;
 
 namespace Zenvin.VisualDebugging {
@@ -176,6 +177,25 @@ namespace Zenvin.VisualDebugging {
 		public bool ContainsContext (GameObject context) {
 			foreach (var target in debugTargets.Values) {
 				if (target.Context == context) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/// <summary>
+		/// Performs a linear search in (up to) all registered debug targets and returns whether the context of any matches any of the given values.
+		/// </summary>
+		/// <remarks>
+		/// Use sparingly. The linear search means that executing the method will take <c>O(n*m)</c> at worst, 
+		/// where <c>n</c> is the number of registered targets and <c>m</c> is the length of <paramref name="contexts"/>.
+		/// </remarks>
+		public bool ContainsAnyContext (params GameObject[] contexts) {
+			if (contexts == null) {
+				return false;
+			}
+			foreach (var target in debugTargets.Values) {
+				if (contexts.Contains(target.Context)) {
 					return true;
 				}
 			}
